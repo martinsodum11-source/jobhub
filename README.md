@@ -1,16 +1,103 @@
-# React + Vite
+# JobHub
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+JobHub is an open-source job board platform built to help people discover job opportunities and connect with companies.
 
-Currently, two official plugins are available:
+The project is being built with a focus on simplicity, accessibility, and a contributor-friendly development experience.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+* 🔎 Search for jobs
+* 🎯 Filter jobs by category, location, and job type
+* 💾 Save jobs
+* 📄 View detailed job information
+* 📝 Apply for jobs
+* 📱 Responsive design
+* 🌍 Open-source and contributor-friendly
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the Oxlint configuration
+* React
+* React Router
+* Tailwind CSS
+* Vite
+* JavaScript
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Getting Started
+
+### Prerequisites
+
+Make sure you have Node.js and Git installed.
+
+### Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/martinsodum11-source
+```
+
+Move into the project:
+
+```bash
+cd jobhub
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Open the local URL shown in your terminal.
+
+## Project Structure
+
+```text
+src/
+├── components/
+├── pages/
+├── data/
+├── App.jsx
+├── index.css
+└── main.jsx
+```
+
+## Contributing
+
+Contributions are welcome!
+
+If you would like to contribute:
+
+1. Fork the repository
+2. Create a new branch
+3. Make your changes
+4. Test your changes
+5. Commit your changes
+6. Open a pull request
+
+Please read `CONTRIBUTING.md` for more information.
+
+## Roadmap
+
+Planned improvements include:
+
+* Backend API
+* Database integration
+* User authentication
+* Employer accounts
+* Job posting
+* Real job applications
+* Resume storage
+* Admin dashboard
+* Improved search
+* More contributor-friendly issues
+
+## License
+
+JobHub will be released under the MIT License.
