@@ -30,7 +30,7 @@ function JobCard({ job, isSaved, toggleSaveJob }) {
         <button
           onClick={() => toggleSaveJob(job)}
           className="rounded-full p-2 text-xl transition hover:bg-slate-100"
-          aria-label="Save job"
+          aria-label={isSaved ? 'Remove saved job' : 'Save job'}
         >
           {isSaved ? '❤️' : '♡'}
         </button>
@@ -78,7 +78,7 @@ function JobCard({ job, isSaved, toggleSaveJob }) {
         </div>
 
         <Link
-          to={`/jobs/${job.id}`}
+          to={`/jobs/${job._id}`}
           className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
         >
           View Job

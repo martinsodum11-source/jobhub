@@ -1,5 +1,5 @@
 import Hero from '../components/Hero'
-import FeaturedJob from '../components/FeaturedJob'
+import FeaturedJobs from '../components/FeaturedJobs'
 import JobCategories from '../components/JobCategories'
 
 function Home({ savedJobs, toggleSaveJob }) {
@@ -7,7 +7,7 @@ function Home({ savedJobs, toggleSaveJob }) {
     <>
       <Hero />
 
-      <FeaturedJob
+      <FeaturedJobs
         savedJobs={savedJobs}
         toggleSaveJob={toggleSaveJob}
       />

@@ -1,11 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import JobCard from '../components/JobCard'
-import jobs from '../data/jobs'
+import { getJobs } from '../api/jobsApi'
 
 function Jobs({ savedJobs, toggleSaveJob }) {
   const [searchParams, setSearchParams] = useSearchParams()
+
+  const [jobs, setJobs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   const [search, setSearch] = useState(
     searchParams.get('search') || ''
@@ -22,6 +26,21 @@ function Jobs({ savedJobs, toggleSaveJob }) {
   const [category, setCategory] = useState(
     searchParams.get('category') || 'All'
   )
+
+  useEffect(() => {
+    const loadJobs = async () => {
+      try {
+        const data = await getJobs()
+        setJobs(data)
+      } catch (error) {
+        setError('Unable to load jobs.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadJobs()
+  }, [])
 
   const filteredJobs = jobs.filter((job) => {
     const searchText = search.toLowerCase()
@@ -249,8 +268,24 @@ function Jobs({ savedJobs, toggleSaveJob }) {
 
         </div>
 
+        {/* Loading */}
+        {loading && (
+          <div className="mt-10 text-center text-slate-500">
+            Loading jobs...
+          </div>
+        )}
+
+        {/* Error */}
+        {!loading && error && (
+          <div className="mt-10 rounded-2xl border bg-white p-10 text-center">
+            <p className="text-red-600">
+              {error}
+            </p>
+          </div>
+        )}
+
         {/* Job Results */}
-        {filteredJobs.length > 0 ? (
+        {!loading && !error && filteredJobs.length > 0 && (
           <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
             {filteredJobs.map((job) => (
@@ -265,7 +300,10 @@ function Jobs({ savedJobs, toggleSaveJob }) {
             ))}
 
           </div>
-        ) : (
+        )}
+
+        {/* No Results */}
+        {!loading && !error && filteredJobs.length === 0 && (
           <div className="mt-10 rounded-2xl border bg-white p-12 text-center shadow-sm">
 
             <div className="text-5xl">

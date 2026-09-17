@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import ProtectedRoute from './components/ProtectedRoute'
 
 import Home from './pages/Home'
 import Jobs from './pages/Jobs'
@@ -10,6 +11,12 @@ import JobDetails from './pages/JobDetails'
 import About from './pages/About'
 import SavedJobs from './pages/SavedJobs'
 import Apply from './pages/Apply'
+import Register from './pages/Register'
+import Login from './pages/Login'
+import MyApplications from './pages/MyApplications'
+import EmployerDashboard from './pages/EmployerDashboard'
+import PostJob from './pages/PostJob'
+import EditJob from './pages/EditJob'
 
 function App() {
   const [savedJobs, setSavedJobs] = useState([])
@@ -17,12 +24,12 @@ function App() {
   const toggleSaveJob = (job) => {
     setSavedJobs((currentSavedJobs) => {
       const alreadySaved = currentSavedJobs.some(
-        (savedJob) => savedJob.id === job.id
+        (savedJob) => savedJob._id === job._id
       )
 
       if (alreadySaved) {
         return currentSavedJobs.filter(
-          (savedJob) => savedJob.id !== job.id
+          (savedJob) => savedJob._id !== job._id
         )
       }
 
@@ -36,7 +43,8 @@ function App() {
 
       <Routes>
 
-        {/* Home */}
+        {/* Public Routes */}
+
         <Route
           path="/"
           element={
@@ -47,7 +55,6 @@ function App() {
           }
         />
 
-        {/* Jobs */}
         <Route
           path="/jobs"
           element={
@@ -58,19 +65,11 @@ function App() {
           }
         />
 
-        {/* Job Details */}
         <Route
           path="/jobs/:id"
           element={<JobDetails />}
         />
 
-        {/* Apply */}
-        <Route
-          path="/jobs/:id/apply"
-          element={<Apply />}
-        />
-
-        {/* Saved Jobs */}
         <Route
           path="/saved"
           element={
@@ -81,11 +80,61 @@ function App() {
           }
         />
 
-        {/* About */}
         <Route
           path="/about"
           element={<About />}
         />
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        {/* Job Seeker Protected Routes */}
+
+        <Route
+          element={
+            <ProtectedRoute allowedRole="jobseeker" />
+          }
+        >
+          <Route
+            path="/jobs/:id/apply"
+            element={<Apply />}
+          />
+
+          <Route
+            path="/my-applications"
+            element={<MyApplications />}
+          />
+        </Route>
+
+        {/* Employer Protected Routes */}
+
+        <Route
+          element={
+            <ProtectedRoute allowedRole="employer" />
+          }
+        >
+          <Route
+            path="/employer/dashboard"
+            element={<EmployerDashboard />}
+          />
+
+          <Route
+            path="/employer/post-job"
+            element={<PostJob />}
+          />
+
+          <Route
+            path="/employer/edit-job/:id"
+            element={<EditJob />}
+          />
+        </Route>
 
       </Routes>
 
