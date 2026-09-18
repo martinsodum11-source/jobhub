@@ -1,4 +1,6 @@
-const API_URL = 'http://localhost:5000/api'
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:5000/api'
 
 export async function submitApplication(
   applicationData,
@@ -8,12 +10,10 @@ export async function submitApplication(
     `${API_URL}/applications`,
     {
       method: 'POST',
-
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-
       body: JSON.stringify(applicationData),
     }
   )
@@ -30,11 +30,9 @@ export async function submitApplication(
   return data
 }
 
-export async function getApplications() {
-  const token = localStorage.getItem('token')
-
+export async function getMyApplications(token) {
   const response = await fetch(
-    `${API_URL}/applications`,
+    `${API_URL}/my-applications`,
     {
       headers: {
         Authorization: `Bearer ${token}`,

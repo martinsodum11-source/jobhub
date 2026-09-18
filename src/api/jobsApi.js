@@ -1,4 +1,6 @@
-const API_URL = 'http://localhost:5000/api'
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:5000/api'
 
 export async function getJobs() {
   const response = await fetch(`${API_URL}/jobs`)
@@ -11,7 +13,9 @@ export async function getJobs() {
 }
 
 export async function getJobById(id) {
-  const response = await fetch(`${API_URL}/jobs/${id}`)
+  const response = await fetch(
+    `${API_URL}/jobs/${id}`
+  )
 
   if (!response.ok) {
     throw new Error('Failed to fetch job')

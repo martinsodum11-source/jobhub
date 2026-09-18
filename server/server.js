@@ -14,9 +14,17 @@ const authorize = require('./middleware/role')
 const { validateJob } = require('./middleware/validate')
 
 const app = express()
-const PORT = 5000
+const PORT = process.env.PORT || 5000
 
-app.use(cors())
+const CLIENT_URL =
+  process.env.CLIENT_URL || 'http://localhost:5173'
+
+app.use(
+  cors({
+    origin: CLIENT_URL,
+  })
+)
+
 app.use(express.json())
 
 app.use('/api/auth', authRoutes)
@@ -541,7 +549,7 @@ const startServer = async () => {
 
     app.listen(PORT, () => {
       console.log(
-        `JobHub server running on http://localhost:${PORT}`
+        `JobHub server running on port ${PORT}`
       )
     })
   } catch (error) {

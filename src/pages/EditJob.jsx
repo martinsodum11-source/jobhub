@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getJobById } from '../api/jobsApi'
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:5000/api'
+
 function EditJob() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -100,7 +104,7 @@ function EditJob() {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/jobs/${id}`,
+        `${API_URL}/jobs/${id}`,
         {
           method: 'PUT',
           headers: {
@@ -125,7 +129,9 @@ function EditJob() {
         navigate(`/jobs/${id}`)
       }, 1000)
     } catch (error) {
-      setError(error.message || 'Failed to update job')
+      setError(
+        error.message || 'Failed to update job'
+      )
     } finally {
       setSubmitting(false)
     }
@@ -147,7 +153,6 @@ function EditJob() {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-12">
         <div className="mx-auto max-w-4xl">
-
           <div className="rounded-xl bg-red-100 p-4 text-red-700">
             {error}
           </div>
@@ -158,7 +163,6 @@ function EditJob() {
           >
             ← Back to dashboard
           </Link>
-
         </div>
       </main>
     )
@@ -167,7 +171,6 @@ function EditJob() {
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-12">
       <div className="mx-auto max-w-4xl">
-
         <Link
           to="/employer/dashboard"
           className="text-sm font-medium text-blue-600 hover:underline"
@@ -186,7 +189,6 @@ function EditJob() {
         </div>
 
         <div className="rounded-2xl bg-white p-8 shadow-sm">
-
           {success && (
             <div className="mb-6 rounded-lg bg-green-100 p-4 text-green-700">
               {success}
@@ -203,7 +205,6 @@ function EditJob() {
             onSubmit={handleSubmit}
             className="space-y-6"
           >
-
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Job Title
@@ -260,10 +261,21 @@ function EditJob() {
                 onChange={handleChange}
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-500"
               >
-                <option value="Full-time">Full-time</option>
-                <option value="Part-time">Part-time</option>
-                <option value="Contract">Contract</option>
-                <option value="Internship">Internship</option>
+                <option value="Full-time">
+                  Full-time
+                </option>
+
+                <option value="Part-time">
+                  Part-time
+                </option>
+
+                <option value="Contract">
+                  Contract
+                </option>
+
+                <option value="Internship">
+                  Internship
+                </option>
               </select>
             </div>
 
@@ -416,7 +428,6 @@ function EditJob() {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-
               <button
                 type="submit"
                 disabled={submitting}
@@ -433,16 +444,12 @@ function EditJob() {
               >
                 Cancel
               </Link>
-
             </div>
-
           </form>
-
         </div>
-
       </div>
     </main>
   )
 }
 
-export default EditJob      
+export default EditJob

@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:5000/api'
+
 function PostJob() {
   const navigate = useNavigate()
 
@@ -44,7 +48,9 @@ function PostJob() {
       const token = localStorage.getItem('token')
 
       if (!token) {
-        throw new Error('You must be logged in to post a job.')
+        throw new Error(
+          'You must be logged in to post a job.'
+        )
       }
 
       const jobData = {
@@ -67,7 +73,7 @@ function PostJob() {
       }
 
       const response = await fetch(
-        'http://localhost:5000/api/jobs',
+        `${API_URL}/jobs`,
         {
           method: 'POST',
           headers: {
@@ -92,7 +98,9 @@ function PostJob() {
         navigate(`/jobs/${data.job._id}`)
       }, 1000)
     } catch (error) {
-      setError(error.message || 'Failed to create job')
+      setError(
+        error.message || 'Failed to create job'
+      )
     } finally {
       setLoading(false)
     }
@@ -101,7 +109,6 @@ function PostJob() {
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-12">
       <div className="mx-auto max-w-4xl">
-
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">
             Post a Job
@@ -113,7 +120,6 @@ function PostJob() {
         </div>
 
         <div className="rounded-2xl bg-white p-8 shadow-sm">
-
           {success && (
             <div className="mb-6 rounded-lg bg-green-100 p-4 text-green-700">
               {success}
@@ -130,8 +136,6 @@ function PostJob() {
             onSubmit={handleSubmit}
             className="space-y-6"
           >
-
-            {/* Job Title */}
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Job Title
@@ -148,7 +152,6 @@ function PostJob() {
               />
             </div>
 
-            {/* Company */}
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Company
@@ -165,7 +168,6 @@ function PostJob() {
               />
             </div>
 
-            {/* Location */}
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Location
@@ -182,7 +184,6 @@ function PostJob() {
               />
             </div>
 
-            {/* Job Type */}
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Job Type
@@ -194,14 +195,24 @@ function PostJob() {
                 onChange={handleChange}
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-500"
               >
-                <option value="Full-time">Full-time</option>
-                <option value="Part-time">Part-time</option>
-                <option value="Contract">Contract</option>
-                <option value="Internship">Internship</option>
+                <option value="Full-time">
+                  Full-time
+                </option>
+
+                <option value="Part-time">
+                  Part-time
+                </option>
+
+                <option value="Contract">
+                  Contract
+                </option>
+
+                <option value="Internship">
+                  Internship
+                </option>
               </select>
             </div>
 
-            {/* Salary */}
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Salary
@@ -218,7 +229,6 @@ function PostJob() {
               />
             </div>
 
-            {/* Category */}
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Category
@@ -235,7 +245,6 @@ function PostJob() {
               />
             </div>
 
-            {/* Experience */}
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Experience Level
@@ -252,7 +261,6 @@ function PostJob() {
               />
             </div>
 
-            {/* Deadline */}
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Application Deadline
@@ -268,7 +276,6 @@ function PostJob() {
               />
             </div>
 
-            {/* Description */}
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Job Description
@@ -285,7 +292,6 @@ function PostJob() {
               />
             </div>
 
-            {/* Requirements */}
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Requirements
@@ -306,7 +312,6 @@ function PostJob() {
               </p>
             </div>
 
-            {/* Benefits */}
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Benefits
@@ -327,7 +332,6 @@ function PostJob() {
               </p>
             </div>
 
-            {/* Skills */}
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Skills
@@ -348,7 +352,6 @@ function PostJob() {
               </p>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
@@ -356,14 +359,11 @@ function PostJob() {
             >
               {loading ? 'Posting Job...' : 'Post Job'}
             </button>
-
           </form>
-
         </div>
-
       </div>
     </main>
   )
 }
 
-export default PostJob  
+export default PostJob

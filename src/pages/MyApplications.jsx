@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:5000/api'
+
 function MyApplications() {
   const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(true)
@@ -18,7 +22,7 @@ function MyApplications() {
         }
 
         const response = await fetch(
-          'http://localhost:5000/api/my-applications',
+          `${API_URL}/my-applications`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -80,7 +84,6 @@ function MyApplications() {
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-12">
       <div className="mx-auto max-w-5xl">
-
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">
             My Applications
@@ -100,7 +103,6 @@ function MyApplications() {
 
         {!error && applications.length === 0 && (
           <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-2xl">
               📄
             </div>
@@ -119,23 +121,18 @@ function MyApplications() {
             >
               Browse Jobs
             </Link>
-
           </div>
         )}
 
         {!error && applications.length > 0 && (
           <div className="space-y-5">
-
             {applications.map((application) => (
               <div
                 key={application._id}
                 className="rounded-2xl bg-white p-6 shadow-sm"
               >
-
                 <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-
                   <div>
-
                     <p className="text-sm font-medium text-blue-600">
                       {application.job?.company ||
                         'Unknown company'}
@@ -159,7 +156,6 @@ function MyApplications() {
                           'Unknown type'}
                       </span>
                     </div>
-
                   </div>
 
                   <span
@@ -169,11 +165,9 @@ function MyApplications() {
                   >
                     {application.status}
                   </span>
-
                 </div>
 
                 <div className="mt-6 grid gap-5 border-t border-slate-100 pt-5 md:grid-cols-2">
-
                   <div>
                     <p className="text-sm text-slate-500">
                       Applied
@@ -195,11 +189,9 @@ function MyApplications() {
                       {application.fullName}
                     </p>
                   </div>
-
                 </div>
 
                 <div className="mt-6 border-t border-slate-100 pt-5">
-
                   <p className="text-sm font-medium text-slate-700">
                     Cover Letter
                   </p>
@@ -207,12 +199,10 @@ function MyApplications() {
                   <p className="mt-2 leading-6 text-slate-600">
                     {application.coverLetter}
                   </p>
-
                 </div>
 
                 {application.resume && (
                   <div className="mt-5">
-
                     <a
                       href={application.resume}
                       target="_blank"
@@ -221,29 +211,23 @@ function MyApplications() {
                     >
                       View Resume →
                     </a>
-
                   </div>
                 )}
 
                 {application.job?._id && (
                   <div className="mt-6">
-
                     <Link
                       to={`/jobs/${application.job._id}`}
                       className="inline-block rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
                     >
                       View Job
                     </Link>
-
                   </div>
                 )}
-
               </div>
             ))}
-
           </div>
         )}
-
       </div>
     </main>
   )

@@ -1,105 +1,94 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:5000/api'
+
 function EmployerDashboard() {
   const [jobs, setJobs] = useState([])
   const [applications, setApplications] = useState([])
-
-  const [loadingJobs, setLoadingJobs] = useState(true)
-  const [loadingApplications, setLoadingApplications] = useState(true)
-
-  const [deletingJobId, setDeletingJobId] = useState(null)
-  const [updatingApplicationId, setUpdatingApplicationId] =
-    useState(null)
-
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [updatingApplication, setUpdatingApplication] =
+    useState(null)
 
-  useEffect(() => {
-    const loadDashboard = async () => {
-      const token = localStorage.getItem('token')
+  const token = localStorage.getItem('token')
+
+  const loadDashboard = async () => {
+    try {
+      setLoading(true)
+      setError('')
 
       if (!token) {
-        setError(
-          'You must be logged in to access the dashboard.'
-        )
-
-        setLoadingJobs(false)
-        setLoadingApplications(false)
-
-        return
+        throw new Error('You must be logged in.')
       }
 
-      try {
-        const [jobsResponse, applicationsResponse] =
-          await Promise.all([
-            fetch('http://localhost:5000/api/employer/jobs', {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }),
+      const [jobsResponse, applicationsResponse] =
+        await Promise.all([
+          fetch(`${API_URL}/employer/jobs`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
 
-            fetch(
-              'http://localhost:5000/api/employer/applications',
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            ),
-          ])
+          fetch(`${API_URL}/employer/applications`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+        ])
 
-        const jobsData = await jobsResponse.json()
-        const applicationsData =
-          await applicationsResponse.json()
+      const jobsData = await jobsResponse.json()
+      const applicationsData =
+        await applicationsResponse.json()
 
-        if (!jobsResponse.ok) {
-          throw new Error(
-            jobsData.message || 'Failed to load jobs'
-          )
-        }
-
-        if (!applicationsResponse.ok) {
-          throw new Error(
-            applicationsData.message ||
-              'Failed to load applications'
-          )
-        }
-
-        setJobs(jobsData)
-        setApplications(applicationsData)
-      } catch (error) {
-        setError(
-          error.message ||
-            'Failed to load dashboard data'
+      if (!jobsResponse.ok) {
+        throw new Error(
+          jobsData.message ||
+            'Failed to fetch your jobs'
         )
-      } finally {
-        setLoadingJobs(false)
-        setLoadingApplications(false)
       }
+
+      if (!applicationsResponse.ok) {
+        throw new Error(
+          applicationsData.message ||
+            'Failed to fetch applications'
+        )
+      }
+
+      setJobs(jobsData)
+      setApplications(applicationsData)
+    } catch (error) {
+      setError(
+        error.message ||
+          'Failed to load employer dashboard'
+      )
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     loadDashboard()
   }, [])
 
   const handleDeleteJob = async (jobId) => {
     const confirmed = window.confirm(
-      'Are you sure you want to delete this job? This action cannot be undone.'
+      'Are you sure you want to delete this job?'
     )
 
     if (!confirmed) {
       return
     }
 
-    setDeletingJobId(jobId)
-    setError('')
-    setSuccess('')
-
     try {
-      const token = localStorage.getItem('token')
+      setError('')
+      setSuccess('')
 
       const response = await fetch(
-        `http://localhost:5000/api/jobs/${jobId}`,
+        `${API_URL}/jobs/${jobId}`,
         {
           method: 'DELETE',
           headers: {
@@ -122,42 +111,25 @@ function EmployerDashboard() {
         )
       )
 
-      setApplications((currentApplications) =>
-        currentApplications.filter(
-          (application) =>
-            application.job?._id !== jobId
-        )
-      )
-
       setSuccess('Job deleted successfully.')
     } catch (error) {
       setError(
         error.message || 'Failed to delete job'
       )
-    } finally {
-      setDeletingJobId(null)
     }
   }
 
   const handleStatusChange = async (
     applicationId,
-    newStatus
+    status
   ) => {
-    setUpdatingApplicationId(applicationId)
-    setError('')
-    setSuccess('')
-
     try {
-      const token = localStorage.getItem('token')
-
-      if (!token) {
-        throw new Error(
-          'You must be logged in.'
-        )
-      }
+      setUpdatingApplication(applicationId)
+      setError('')
+      setSuccess('')
 
       const response = await fetch(
-        `http://localhost:5000/api/employer/applications/${applicationId}/status`,
+        `${API_URL}/employer/applications/${applicationId}/status`,
         {
           method: 'PUT',
           headers: {
@@ -165,7 +137,7 @@ function EmployerDashboard() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            status: newStatus,
+            status,
           }),
         }
       )
@@ -184,7 +156,7 @@ function EmployerDashboard() {
           application._id === applicationId
             ? {
                 ...application,
-                status: data.application.status,
+                status: data.application?.status || status,
               }
             : application
         )
@@ -199,7 +171,7 @@ function EmployerDashboard() {
           'Failed to update application status'
       )
     } finally {
-      setUpdatingApplicationId(null)
+      setUpdatingApplication(null)
     }
   }
 
@@ -207,26 +179,43 @@ function EmployerDashboard() {
     applications.filter(
       (application) =>
         application.status === 'Pending'
-    )
+    ).length
 
-  const reviewedApplications =
+  const acceptedApplications =
     applications.filter(
       (application) =>
-        application.status !== 'Pending'
+        application.status === 'Accepted'
+    ).length
+
+  const rejectedApplications =
+    applications.filter(
+      (application) =>
+        application.status === 'Rejected'
+    ).length
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-50 px-6 py-12">
+        <div className="mx-auto max-w-7xl">
+          <p className="text-slate-500">
+            Loading dashboard...
+          </p>
+        </div>
+      </main>
     )
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-12">
-      <div className="mx-auto max-w-6xl">
-
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">
               Employer Dashboard
             </h1>
 
             <p className="mt-2 text-slate-600">
-              Manage your jobs and applications.
+              Manage your jobs and review applications.
             </p>
           </div>
 
@@ -239,24 +228,21 @@ function EmployerDashboard() {
         </div>
 
         {error && (
-          <div className="mt-6 rounded-lg bg-red-100 p-4 text-red-700">
+          <div className="mb-6 rounded-lg bg-red-100 p-4 text-red-700">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="mt-6 rounded-lg bg-green-100 p-4 text-green-700">
+          <div className="mb-6 rounded-lg bg-green-100 p-4 text-green-700">
             {success}
           </div>
         )}
 
-        {/* Stats */}
-
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
+        <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl bg-white p-6 shadow-sm">
             <p className="text-sm text-slate-500">
-              My Jobs
+              Total Jobs
             </p>
 
             <p className="mt-2 text-3xl font-bold text-slate-900">
@@ -264,7 +250,7 @@ function EmployerDashboard() {
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <div className="rounded-xl bg-white p-6 shadow-sm">
             <p className="text-sm text-slate-500">
               Total Applications
             </p>
@@ -274,310 +260,234 @@ function EmployerDashboard() {
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <div className="rounded-xl bg-white p-6 shadow-sm">
             <p className="text-sm text-slate-500">
               Pending Applications
             </p>
 
             <p className="mt-2 text-3xl font-bold text-slate-900">
-              {pendingApplications.length}
+              {pendingApplications}
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <div className="rounded-xl bg-white p-6 shadow-sm">
             <p className="text-sm text-slate-500">
-              Reviewed Applications
+              Accepted Applications
             </p>
 
             <p className="mt-2 text-3xl font-bold text-slate-900">
-              {reviewedApplications.length}
+              {acceptedApplications}
             </p>
           </div>
-
         </div>
 
-        {/* My Jobs */}
+        <section className="mb-10">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-slate-900">
+              Your Jobs
+            </h2>
 
-        <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
-
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900">
-                My Jobs
-              </h2>
-
-              <p className="mt-1 text-slate-500">
-                Jobs posted by your employer account.
-              </p>
-            </div>
-
-            <Link
-              to="/employer/post-job"
-              className="text-sm font-semibold text-blue-600 hover:underline"
-            >
-              Post another job →
-            </Link>
-
+            <span className="text-sm text-slate-500">
+              {jobs.length} job
+              {jobs.length !== 1 ? 's' : ''}
+            </span>
           </div>
 
-          {loadingJobs && (
-            <p className="text-slate-500">
-              Loading your jobs...
-            </p>
-          )}
+          {jobs.length === 0 ? (
+            <div className="rounded-xl bg-white p-8 text-center shadow-sm">
+              <p className="text-slate-600">
+                You haven't posted any jobs yet.
+              </p>
 
-          {!loadingJobs &&
-            jobs.length === 0 && (
-              <div className="rounded-xl bg-slate-50 p-8 text-center">
-
-                <p className="font-medium text-slate-700">
-                  You haven't posted any jobs yet.
-                </p>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Create your first job posting to start receiving applications.
-                </p>
-
-                <Link
-                  to="/employer/post-job"
-                  className="mt-5 inline-block rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
+              <Link
+                to="/employer/post-job"
+                className="mt-4 inline-block text-blue-600 hover:underline"
+              >
+                Post your first job →
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {jobs.map((job) => (
+                <div
+                  key={job._id}
+                  className="rounded-xl bg-white p-6 shadow-sm"
                 >
-                  Post Your First Job
-                </Link>
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900">
+                        {job.title}
+                      </h3>
 
-              </div>
-            )}
+                      <p className="mt-1 text-slate-600">
+                        {job.company} • {job.location}
+                      </p>
 
-          {!loadingJobs &&
-            jobs.length > 0 && (
-              <div className="grid gap-4 md:grid-cols-2">
+                      <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
+                          {job.type}
+                        </span>
 
-                {jobs.map((job) => (
-                  <div
-                    key={job._id}
-                    className="rounded-xl border border-slate-200 p-5"
-                  >
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
+                          {job.category}
+                        </span>
 
-                    <div className="flex items-start justify-between gap-4">
-
-                      <div>
-                        <h3 className="font-semibold text-slate-900">
-                          {job.title}
-                        </h3>
-
-                        <p className="mt-1 text-sm text-slate-500">
-                          {job.company}
-                        </p>
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
+                          {job.salary}
+                        </span>
                       </div>
-
-                      <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
-                        {job.type}
-                      </span>
-
                     </div>
 
-                    <div className="mt-4 space-y-2 text-sm text-slate-600">
-                      <p>📍 {job.location}</p>
-                      <p>💰 {job.salary}</p>
-                      <p>🎯 {job.experience}</p>
-                    </div>
-
-                    <div className="mt-5 flex flex-wrap gap-3">
-
+                    <div className="flex flex-wrap gap-2">
                       <Link
                         to={`/jobs/${job._id}`}
-                        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                        className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 transition hover:bg-slate-100"
                       >
-                        View Job
+                        View
                       </Link>
 
                       <Link
                         to={`/employer/edit-job/${job._id}`}
-                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                        className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
                       >
                         Edit
                       </Link>
 
                       <button
+                        type="button"
                         onClick={() =>
                           handleDeleteJob(job._id)
                         }
-                        disabled={
-                          deletingJobId === job._id
-                        }
-                        className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-lg bg-red-600 px-4 py-2 font-medium text-white transition hover:bg-red-700"
                       >
-                        {deletingJobId === job._id
-                          ? 'Deleting...'
-                          : 'Delete'}
+                        Delete
                       </button>
-
                     </div>
                   </div>
-                ))}
-
-              </div>
-            )}
-
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
-        {/* Applications */}
-
-        <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
-
-          <div className="mb-6">
-
+        <section>
+          <div className="mb-4">
             <h2 className="text-2xl font-bold text-slate-900">
               Applications
             </h2>
 
-            <p className="mt-1 text-slate-500">
-              Applications received for your jobs.
+            <p className="mt-1 text-slate-600">
+              Review applications submitted for your
+              jobs.
             </p>
-
           </div>
 
-          {loadingApplications && (
-            <p className="text-slate-500">
-              Loading applications...
-            </p>
-          )}
+          {applications.length === 0 ? (
+            <div className="rounded-xl bg-white p-8 text-center shadow-sm">
+              <p className="text-slate-600">
+                No applications yet.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left">
+                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">
+                      Applicant
+                    </th>
 
-          {!loadingApplications &&
-            applications.length === 0 && (
-              <div className="rounded-xl bg-slate-50 p-8 text-center">
+                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">
+                      Job
+                    </th>
 
-                <p className="font-medium text-slate-700">
-                  No applications yet.
-                </p>
+                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">
+                      Email
+                    </th>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Applications will appear here when someone applies to your jobs.
-                </p>
+                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
 
-              </div>
-            )}
+                <tbody>
+                  {applications.map(
+                    (application) => (
+                      <tr
+                        key={application._id}
+                        className="border-b border-slate-100 last:border-0"
+                      >
+                        <td className="px-6 py-4">
+                          <p className="font-medium text-slate-900">
+                            {application.fullName}
+                          </p>
 
-          {!loadingApplications &&
-            applications.length > 0 && (
-              <div className="overflow-x-auto">
-
-                <table className="w-full min-w-[800px]">
-
-                  <thead>
-                    <tr className="border-b border-slate-200 text-left">
-
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">
-                        Applicant
-                      </th>
-
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">
-                        Job
-                      </th>
-
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">
-                        Email
-                      </th>
-
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">
-                        Status
-                      </th>
-
-                    </tr>
-                  </thead>
-
-                  <tbody>
-
-                    {applications.map(
-                      (application) => (
-                        <tr
-                          key={application._id}
-                          className="border-b border-slate-100 last:border-0"
-                        >
-
-                          <td className="px-4 py-4">
-
-                            <p className="font-medium text-slate-900">
-                              {application.fullName}
-                            </p>
-
-                            <p className="text-sm text-slate-500">
+                          {application.phone && (
+                            <p className="mt-1 text-sm text-slate-500">
                               {application.phone}
                             </p>
+                          )}
+                        </td>
 
-                          </td>
+                        <td className="px-6 py-4 text-slate-700">
+                          {application.job?.title ||
+                            'Job unavailable'}
+                        </td>
 
-                          <td className="px-4 py-4">
+                        <td className="px-6 py-4 text-slate-700">
+                          {application.email}
+                        </td>
 
-                            <p className="font-medium text-slate-900">
-                              {application.job?.title ||
-                                'Unknown job'}
-                            </p>
+                        <td className="px-6 py-4">
+                          <select
+                            value={
+                              application.status ||
+                              'Pending'
+                            }
+                            disabled={
+                              updatingApplication ===
+                              application._id
+                            }
+                            onChange={(event) =>
+                              handleStatusChange(
+                                application._id,
+                                event.target.value
+                              )
+                            }
+                            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 disabled:opacity-60"
+                          >
+                            <option value="Pending">
+                              Pending
+                            </option>
 
-                            <p className="text-sm text-slate-500">
-                              {application.job?.company ||
-                                ''}
-                            </p>
+                            <option value="Reviewed">
+                              Reviewed
+                            </option>
 
-                          </td>
+                            <option value="Accepted">
+                              Accepted
+                            </option>
 
-                          <td className="px-4 py-4 text-sm text-slate-600">
-                            {application.email}
-                          </td>
-
-                          <td className="px-4 py-4">
-
-                            <select
-                              value={
-                                application.status
-                              }
-                              onChange={(event) =>
-                                handleStatusChange(
-                                  application._id,
-                                  event.target.value
-                                )
-                              }
-                              disabled={
-                                updatingApplicationId ===
-                                application._id
-                              }
-                              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-
-                              <option value="Pending">
-                                Pending
-                              </option>
-
-                              <option value="Reviewed">
-                                Reviewed
-                              </option>
-
-                              <option value="Accepted">
-                                Accepted
-                              </option>
-
-                              <option value="Rejected">
-                                Rejected
-                              </option>
-
-                            </select>
-
-                          </td>
-
-                        </tr>
-                      )
-                    )}
-
-                  </tbody>
-
-                </table>
-
-              </div>
-            )}
-
+                            <option value="Rejected">
+                              Rejected
+                            </option>
+                          </select>
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
+        {rejectedApplications > 0 && (
+          <p className="mt-6 text-sm text-slate-500">
+            Rejected applications: {rejectedApplications}
+          </p>
+        )}
       </div>
     </main>
   )
