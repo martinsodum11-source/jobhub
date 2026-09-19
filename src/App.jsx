@@ -14,6 +14,7 @@ import Apply from './pages/Apply'
 import Register from './pages/Register'
 import Login from './pages/Login'
 import MyApplications from './pages/MyApplications'
+import JobseekerDashboard from './pages/JobseekerDashboard'
 import EmployerDashboard from './pages/EmployerDashboard'
 import PostJob from './pages/PostJob'
 import EditJob from './pages/EditJob'
@@ -22,6 +23,10 @@ function App() {
   const [savedJobs, setSavedJobs] = useState([])
 
   const toggleSaveJob = (job) => {
+    if (!job || !job._id) {
+      return
+    }
+
     setSavedJobs((currentSavedJobs) => {
       const alreadySaved = currentSavedJobs.some(
         (savedJob) => savedJob._id === job._id
@@ -43,8 +48,7 @@ function App() {
 
       <Routes>
 
-        {/* Public Routes */}
-
+        {/* Public routes */}
         <Route
           path="/"
           element={
@@ -95,13 +99,21 @@ function App() {
           element={<Login />}
         />
 
-        {/* Job Seeker Protected Routes */}
-
+        {/* Jobseeker routes */}
         <Route
           element={
             <ProtectedRoute allowedRole="jobseeker" />
           }
         >
+          <Route
+            path="/dashboard"
+            element={
+              <JobseekerDashboard
+                savedJobs={savedJobs}
+              />
+            }
+          />
+
           <Route
             path="/jobs/:id/apply"
             element={<Apply />}
@@ -113,8 +125,7 @@ function App() {
           />
         </Route>
 
-        {/* Employer Protected Routes */}
-
+        {/* Employer routes */}
         <Route
           element={
             <ProtectedRoute allowedRole="employer" />

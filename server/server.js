@@ -16,12 +16,22 @@ const { validateJob } = require('./middleware/validate')
 const app = express()
 const PORT = process.env.PORT || 5000
 
-const CLIENT_URL =
-  process.env.CLIENT_URL || 'http://localhost:5173'
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://jobhub-eight-liard.vercel.app',
+  process.env.CLIENT_URL,
+].filter(Boolean)
 
 app.use(
   cors({
-    origin: CLIENT_URL,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true)
+        return
+      }
+
+      callback(new Error('Not allowed by CORS'))
+    },
   })
 )
 
@@ -44,10 +54,7 @@ app.get('/api/jobs', async (req, res) => {
 
     res.json(jobs)
   } catch (error) {
-    console.error(
-      'Failed to fetch jobs:',
-      error.message
-    )
+    console.error('Failed to fetch jobs:', error.message)
 
     res.status(500).json({
       message: 'Failed to fetch jobs',
@@ -69,10 +76,7 @@ app.get('/api/jobs/:id', async (req, res) => {
 
     res.json(job)
   } catch (error) {
-    console.error(
-      'Failed to fetch job:',
-      error.message
-    )
+    console.error('Failed to fetch job:', error.message)
 
     res.status(500).json({
       message: 'Failed to fetch job',
