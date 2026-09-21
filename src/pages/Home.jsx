@@ -2,9 +2,9 @@ import Hero from '../components/Hero'
 import FeaturedJobs from '../components/FeaturedJobs'
 import JobCategories from '../components/JobCategories'
 
-function Home({ savedJobs, toggleSaveJob }) {
+function Home({ savedJobs = [], toggleSaveJob }) {
   return (
-    <>
+    <main className="min-h-screen bg-slate-50">
       <Hero />
 
       <FeaturedJobs
@@ -13,7 +13,7 @@ function Home({ savedJobs, toggleSaveJob }) {
       />
 
       <JobCategories />
-    </>
+    </main>
   )
 }
 
