@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-
-import JobCard from '../components/JobCard'
-import { getJobs } from '../api/jobsApi'
+import { Link, useSearchParams } from 'react-router-dom'
+import { API_URL } from '../api/config'
 
 const jobTypes = [
   'All',
@@ -30,523 +28,599 @@ const categories = [
 ]
 
 function Jobs({ savedJobs = [], toggleSaveJob }) {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
+
+  const initialSearch = searchParams.get('search') || ''
+  const initialCategory =
+    searchParams.get('category') || 'All'
 
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const [search, setSearch] = useState(
-    searchParams.get('search') || ''
-  )
-
-  const [type, setType] = useState(
-    searchParams.get('type') || 'All'
-  )
-
-  const [location, setLocation] = useState(
-    searchParams.get('location') || 'All'
-  )
-
+  const [search, setSearch] = useState(initialSearch)
   const [category, setCategory] = useState(
-    searchParams.get('category') || 'All'
+    initialCategory
   )
-
+  const [jobType, setJobType] = useState('All')
+  const [location, setLocation] = useState('All')
   const [sortBy, setSortBy] = useState('Newest')
 
   useEffect(() => {
-    const loadJobs = async () => {
+    const fetchJobs = async () => {
       try {
         setLoading(true)
         setError('')
 
-        const data = await getJobs()
+        const response = await fetch(
+          `${API_URL}/jobs`
+        )
+
+        if (!response.ok) {
+          throw new Error(
+            'Failed to load jobs'
+          )
+        }
+
+        const data = await response.json()
 
         setJobs(Array.isArray(data) ? data : [])
       } catch (error) {
-        setError('Unable to load jobs right now.')
+        console.error(
+          'Failed to fetch jobs:',
+          error
+        )
+
+        setError(
+          'Unable to load jobs right now. Please try again.'
+        )
       } finally {
         setLoading(false)
       }
     }
 
-    loadJobs()
+    fetchJobs()
   }, [])
 
-  const updateFilters = (newFilters) => {
-    const filters = {
-      search,
-      type,
-      location,
-      category,
-      ...newFilters,
+  const filteredJobs = useMemo(() => {
+    let result = [...jobs]
+
+    const searchValue =
+      search.trim().toLowerCase()
+
+    if (searchValue) {
+      result = result.filter((job) => {
+        const title =
+          job.title?.toLowerCase() || ''
+
+        const company =
+          job.company?.toLowerCase() || ''
+
+        const jobLocation =
+          job.location?.toLowerCase() || ''
+
+        const description =
+          job.description?.toLowerCase() || ''
+
+        const skills = Array.isArray(job.skills)
+          ? job.skills
+              .join(' ')
+              .toLowerCase()
+          : ''
+
+        return (
+          title.includes(searchValue) ||
+          company.includes(searchValue) ||
+          jobLocation.includes(searchValue) ||
+          description.includes(searchValue) ||
+          skills.includes(searchValue)
+        )
+      })
     }
 
-    const params = {}
-
-    if (filters.search.trim()) {
-      params.search = filters.search.trim()
+    if (category !== 'All') {
+      result = result.filter(
+        (job) =>
+          job.category === category
+      )
     }
 
-    if (filters.type !== 'All') {
-      params.type = filters.type
+    if (jobType !== 'All') {
+      result = result.filter(
+        (job) => job.type === jobType
+      )
     }
 
-    if (filters.location !== 'All') {
-      params.location = filters.location
+    if (location !== 'All') {
+      result = result.filter((job) => {
+        const jobLocation =
+          job.location?.toLowerCase() || ''
+
+        if (location === 'Remote') {
+          return jobLocation.includes('remote')
+        }
+
+        return (
+          jobLocation ===
+          location.toLowerCase()
+        )
+      })
     }
 
-    if (filters.category !== 'All') {
-      params.category = filters.category
+    if (sortBy === 'Newest') {
+      result.sort((a, b) => {
+        const dateA = new Date(
+          a.createdAt || 0
+        ).getTime()
+
+        const dateB = new Date(
+          b.createdAt || 0
+        ).getTime()
+
+        return dateB - dateA
+      })
     }
 
-    setSearchParams(params)
+    if (sortBy === 'Oldest') {
+      result.sort((a, b) => {
+        const dateA = new Date(
+          a.createdAt || 0
+        ).getTime()
+
+        const dateB = new Date(
+          b.createdAt || 0
+        ).getTime()
+
+        return dateA - dateB
+      })
+    }
+
+    if (sortBy === 'Salary') {
+      result.sort((a, b) => {
+        const salaryA =
+          a.salary?.match(
+            /[\d,]+/
+          )?.[0] || '0'
+
+        const salaryB =
+          b.salary?.match(
+            /[\d,]+/
+          )?.[0] || '0'
+
+        const numberA = Number(
+          salaryA.replace(/,/g, '')
+        )
+
+        const numberB = Number(
+          salaryB.replace(/,/g, '')
+        )
+
+        return numberB - numberA
+      })
+    }
+
+    return result
+  }, [
+    jobs,
+    search,
+    category,
+    jobType,
+    location,
+    sortBy,
+  ])
+
+  const isSaved = (job) => {
+    return savedJobs.some(
+      (savedJob) =>
+        savedJob._id === job._id
+    )
   }
 
   const clearFilters = () => {
     setSearch('')
-    setType('All')
-    setLocation('All')
     setCategory('All')
-    setSearchParams({})
+    setJobType('All')
+    setLocation('All')
+    setSortBy('Newest')
   }
-
-  const filteredJobs = useMemo(() => {
-    const searchText = search.trim().toLowerCase()
-
-    const results = jobs.filter((job) => {
-      const title = job.title?.toLowerCase() || ''
-      const company = job.company?.toLowerCase() || ''
-      const skills = Array.isArray(job.skills)
-        ? job.skills
-        : []
-
-      const matchesSearch =
-        !searchText ||
-        title.includes(searchText) ||
-        company.includes(searchText) ||
-        skills.some((skill) =>
-          skill.toLowerCase().includes(searchText)
-        )
-
-      const matchesType =
-        type === 'All' || job.type === type
-
-      const matchesLocation =
-        location === 'All' || job.location === location
-
-      const matchesCategory =
-        category === 'All' || job.category === category
-
-      return (
-        matchesSearch &&
-        matchesType &&
-        matchesLocation &&
-        matchesCategory
-      )
-    })
-
-    if (sortBy === 'Newest') {
-      return [...results].reverse()
-    }
-
-    if (sortBy === 'Oldest') {
-      return [...results]
-    }
-
-    if (sortBy === 'Title') {
-      return [...results].sort((a, b) =>
-        (a.title || '').localeCompare(b.title || '')
-      )
-    }
-
-    return results
-  }, [
-    jobs,
-    search,
-    type,
-    location,
-    category,
-    sortBy,
-  ])
-
-  const hasActiveFilters =
-    search.trim() ||
-    type !== 'All' ||
-    location !== 'All' ||
-    category !== 'All'
 
   return (
     <main className="min-h-screen bg-slate-50">
-      {/* Page header */}
       <section className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
-            <div className="mb-4 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-blue-600">
+              Job marketplace
+            </p>
 
-              <span className="text-sm font-semibold uppercase tracking-[0.14em] text-blue-600">
-                Job marketplace
-              </span>
-            </div>
-
-            <h1 className="text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
+            <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
               Find your next opportunity
             </h1>
 
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500 sm:text-lg">
-              Search thousands of opportunities and find a role
-              that matches your skills, experience, and career goals.
+            <p className="mt-4 text-lg leading-8 text-slate-600">
+              Explore opportunities from
+              companies looking for talented
+              people like you.
             </p>
           </div>
-        </div>
-      </section>
 
-      {/* Search + filters */}
-      <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
-          <div className="-mt-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/40 sm:p-5">
-            {/* Search */}
-            <div className="flex flex-col gap-3 lg:flex-row">
-              <div className="flex min-w-0 flex-1 items-center rounded-xl border border-slate-200 bg-slate-50 px-4 transition focus-within:border-blue-300 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50">
-                <svg
-                  className="mr-3 h-5 w-5 shrink-0 text-slate-400"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="11" cy="11" r="7" />
-                  <path
-                    strokeLinecap="round"
-                    d="m20 20-4-4"
-                  />
-                </svg>
-
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => {
-                    const value = e.target.value
-
-                    setSearch(value)
-
-                    updateFilters({
-                      search: value,
-                    })
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      updateFilters({ search })
-                    }
-                  }}
-                  placeholder="Search by job title, company or skill..."
-                  className="w-full bg-transparent py-3.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => updateFilters({ search })}
-                className="rounded-xl bg-blue-600 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-              >
-                Search jobs
-              </button>
-            </div>
-
-            {/* Filter controls */}
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <label
-                  htmlFor="job-type"
-                  className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500"
-                >
-                  Job type
-                </label>
-
-                <select
-                  id="job-type"
-                  value={type}
-                  onChange={(e) => {
-                    const value = e.target.value
-
-                    setType(value)
-
-                    updateFilters({
-                      type: value,
-                    })
-                  }}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                >
-                  {jobTypes.map((item) => (
-                    <option key={item} value={item}>
-                      {item === 'All' ? 'All job types' : item}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="job-location"
-                  className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500"
-                >
-                  Location
-                </label>
-
-                <select
-                  id="job-location"
-                  value={location}
-                  onChange={(e) => {
-                    const value = e.target.value
-
-                    setLocation(value)
-
-                    updateFilters({
-                      location: value,
-                    })
-                  }}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                >
-                  {locations.map((item) => (
-                    <option key={item} value={item}>
-                      {item === 'All'
-                        ? 'All locations'
-                        : item}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="job-category"
-                  className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500"
-                >
-                  Category
-                </label>
-
-                <select
-                  id="job-category"
-                  value={category}
-                  onChange={(e) => {
-                    const value = e.target.value
-
-                    setCategory(value)
-
-                    updateFilters({
-                      category: value,
-                    })
-                  }}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                >
-                  {categories.map((item) => (
-                    <option key={item} value={item}>
-                      {item === 'All'
-                        ? 'All categories'
-                        : item}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="sort-jobs"
-                  className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500"
-                >
-                  Sort by
-                </label>
-
-                <select
-                  id="sort-jobs"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                >
-                  <option value="Newest">Newest</option>
-                  <option value="Oldest">Oldest</option>
-                  <option value="Title">Job title</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Active filters */}
-            {hasActiveFilters && (
-              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
-                <span className="mr-1 text-xs font-medium text-slate-500">
-                  Active filters:
-                </span>
-
-                {search.trim() && (
-                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                    {search}
-                  </span>
-                )}
-
-                {type !== 'All' && (
-                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                    {type}
-                  </span>
-                )}
-
-                {location !== 'All' && (
-                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                    {location}
-                  </span>
-                )}
-
-                {category !== 'All' && (
-                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                    {category}
-                  </span>
-                )}
-
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="ml-1 text-xs font-semibold text-slate-500 underline underline-offset-2 transition hover:text-slate-900"
-                >
-                  Clear all
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Results */}
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        {/* Results header */}
-        {!loading && !error && (
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-slate-950">
-                {filteredJobs.length}{' '}
-                {filteredJobs.length === 1 ? 'job' : 'jobs'} found
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Browse opportunities that match your search.
-              </p>
-            </div>
-
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="w-fit text-sm font-semibold text-blue-600 transition hover:text-blue-700"
-              >
-                Reset filters
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Loading */}
-        {loading && (
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3, 4, 5, 6].map((item) => (
-              <div
-                key={item}
-                className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-white"
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Error */}
-        {!loading && error && (
-          <div className="rounded-2xl border border-red-100 bg-white p-10 text-center shadow-sm">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+          <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 lg:flex-row">
+            <div className="flex flex-1 items-center rounded-xl border border-slate-200 bg-white px-4">
               <svg
-                className="h-5 w-5"
-                viewBox="0 0 24 24"
+                className="mr-3 h-5 w-5 text-slate-400"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                viewBox="0 0 24 24"
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M12 8v4M12 16h.01"
+                  strokeWidth="2"
+                  d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"
                 />
-                <circle cx="12" cy="12" r="9" />
               </svg>
+
+              <input
+                type="text"
+                value={search}
+                onChange={(event) =>
+                  setSearch(
+                    event.target.value
+                  )
+                }
+                placeholder="Search jobs, companies or skills"
+                className="w-full bg-transparent py-3 text-sm text-slate-900 outline-none"
+              />
             </div>
 
-            <h2 className="mt-4 text-lg font-bold text-slate-900">
-              We couldn't load the jobs
-            </h2>
-
-            <p className="mt-2 text-sm text-slate-500">
-              {error}
-            </p>
-          </div>
-        )}
-
-        {/* Jobs */}
-        {!loading &&
-          !error &&
-          filteredJobs.length > 0 && (
-            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {filteredJobs.map((job) => {
-                const isSaved = savedJobs.some(
-                  (savedJob) =>
-                    savedJob._id === job._id
+            <select
+              value={location}
+              onChange={(event) =>
+                setLocation(
+                  event.target.value
                 )
-
-                return (
-                  <JobCard
-                    key={job._id}
-                    job={job}
-                    isSaved={isSaved}
-                    toggleSaveJob={toggleSaveJob}
-                  />
-                )
-              })}
-            </div>
-          )}
-
-        {/* Empty state */}
-        {!loading &&
-          !error &&
-          filteredJobs.length === 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                <svg
-                  className="h-6 w-6"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
+              }
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-blue-500"
+            >
+              {locations.map((item) => (
+                <option
+                  key={item}
+                  value={item}
                 >
-                  <circle cx="11" cy="11" r="7" />
-                  <path
-                    strokeLinecap="round"
-                    d="m20 20-4-4"
-                  />
-                </svg>
-              </div>
+                  {item === 'All'
+                    ? 'All locations'
+                    : item}
+                </option>
+              ))}
+            </select>
 
-              <h2 className="mt-5 text-xl font-bold text-slate-950">
-                No jobs match your search
+            <button
+              type="button"
+              onClick={() => {}}
+              className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Search
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-[250px_1fr]">
+          <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-slate-900">
+                Filters
               </h2>
-
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                Try changing your search terms or removing some
-                filters to see more opportunities.
-              </p>
 
               <button
                 type="button"
                 onClick={clearFilters}
-                className="mt-6 rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-600"
+                className="text-xs font-medium text-blue-600 hover:text-blue-700"
               >
-                Clear all filters
+                Clear
               </button>
             </div>
-          )}
+
+            <div className="mt-6">
+              <label className="mb-2 block text-sm font-medium text-slate-700">
+                Category
+              </label>
+
+              <select
+                value={category}
+                onChange={(event) =>
+                  setCategory(
+                    event.target.value
+                  )
+                }
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-500"
+              >
+                {categories.map((item) => (
+                  <option
+                    key={item}
+                    value={item}
+                  >
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-6">
+              <label className="mb-2 block text-sm font-medium text-slate-700">
+                Job type
+              </label>
+
+              <select
+                value={jobType}
+                onChange={(event) =>
+                  setJobType(
+                    event.target.value
+                  )
+                }
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-500"
+              >
+                {jobTypes.map((item) => (
+                  <option
+                    key={item}
+                    value={item}
+                  >
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-6">
+              <label className="mb-2 block text-sm font-medium text-slate-700">
+                Location
+              </label>
+
+              <select
+                value={location}
+                onChange={(event) =>
+                  setLocation(
+                    event.target.value
+                  )
+                }
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-500"
+              >
+                {locations.map((item) => (
+                  <option
+                    key={item}
+                    value={item}
+                  >
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </aside>
+
+          <div>
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-slate-500">
+                  {loading
+                    ? 'Loading jobs...'
+                    : `${filteredJobs.length} ${
+                        filteredJobs.length === 1
+                          ? 'job'
+                          : 'jobs'
+                      } found`}
+                </p>
+              </div>
+
+              <select
+                value={sortBy}
+                onChange={(event) =>
+                  setSortBy(
+                    event.target.value
+                  )
+                }
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-500"
+              >
+                <option value="Newest">
+                  Newest
+                </option>
+                <option value="Oldest">
+                  Oldest
+                </option>
+                <option value="Salary">
+                  Highest salary
+                </option>
+              </select>
+            </div>
+
+            {loading && (
+              <div className="space-y-4">
+                {[1, 2, 3].map((item) => (
+                  <div
+                    key={item}
+                    className="h-52 animate-pulse rounded-2xl border border-slate-200 bg-white"
+                  />
+                ))}
+              </div>
+            )}
+
+            {!loading && error && (
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+                <h2 className="font-semibold text-red-900">
+                  Something went wrong
+                </h2>
+
+                <p className="mt-2 text-sm text-red-700">
+                  {error}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.location.reload()
+                  }
+                  className="mt-5 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+
+            {!loading &&
+              !error &&
+              filteredJobs.length === 0 && (
+                <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
+                    <svg
+                      className="h-7 w-7 text-slate-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"
+                      />
+                    </svg>
+                  </div>
+
+                  <h2 className="mt-5 text-lg font-semibold text-slate-900">
+                    No jobs found
+                  </h2>
+
+                  <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+                    Try changing your search or
+                    clearing some filters.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="mt-5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              )}
+
+            {!loading &&
+              !error &&
+              filteredJobs.length > 0 && (
+                <div className="space-y-4">
+                  {filteredJobs.map((job) => (
+                    <article
+                      key={job._id}
+                      className="group rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg hover:shadow-slate-200/60"
+                    >
+                      <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xl font-bold text-white">
+                          {job.company
+                            ?.charAt(0)
+                            ?.toUpperCase() ||
+                            'J'}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <Link
+                                to={`/jobs/${job._id}`}
+                                className="text-xl font-semibold text-slate-900 transition hover:text-blue-600"
+                              >
+                                {job.title}
+                              </Link>
+
+                              <p className="mt-1 font-medium text-slate-600">
+                                {job.company}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleSaveJob?.(
+                                  job
+                                )
+                              }
+                              className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                                isSaved(job)
+                                  ? 'border-blue-200 bg-blue-50 text-blue-600'
+                                  : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-600'
+                              }`}
+                            >
+                              {isSaved(job)
+                                ? 'Saved'
+                                : 'Save'}
+                            </button>
+                          </div>
+
+                          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500">
+                            <span>
+                              {job.location ||
+                                'Location not specified'}
+                            </span>
+
+                            <span>
+                              {job.type ||
+                                'Job type not specified'}
+                            </span>
+
+                            <span>
+                              {job.experience ||
+                                'Experience not specified'}
+                            </span>
+
+                            {job.salary && (
+                              <span className="font-medium text-slate-700">
+                                {job.salary}
+                              </span>
+                            )}
+                          </div>
+
+                          {Array.isArray(
+                            job.skills
+                          ) &&
+                            job.skills.length >
+                              0 && (
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                {job.skills
+                                  .slice(0, 5)
+                                  .map(
+                                    (skill) => (
+                                      <span
+                                        key={skill}
+                                        className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
+                                      >
+                                        {skill}
+                                      </span>
+                                    )
+                                  )}
+                              </div>
+                            )}
+
+                          <div className="mt-5 flex items-center justify-between">
+                            <span className="text-xs text-slate-400">
+                              {job.posted ||
+                                'Recently posted'}
+                            </span>
+
+                            <Link
+                              to={`/jobs/${job._id}`}
+                              className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+                            >
+                              View job →
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+          </div>
+        </div>
       </section>
     </main>
   )

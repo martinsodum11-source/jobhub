@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getJobById } from '../api/jobsApi'
-
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  'http://localhost:5000/api'
+import { API_URL } from '../api/config'
 
 function EditJob() {
   const { id } = useParams()
@@ -171,6 +168,7 @@ function EditJob() {
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-12">
       <div className="mx-auto max-w-4xl">
+
         <Link
           to="/employer/dashboard"
           className="text-sm font-medium text-blue-600 hover:underline"
@@ -189,6 +187,7 @@ function EditJob() {
         </div>
 
         <div className="rounded-2xl bg-white p-8 shadow-sm">
+
           {success && (
             <div className="mb-6 rounded-lg bg-green-100 p-4 text-green-700">
               {success}
@@ -205,6 +204,7 @@ function EditJob() {
             onSubmit={handleSubmit}
             className="space-y-6"
           >
+
             <div>
               <label className="mb-2 block font-medium text-slate-700">
                 Job Title
@@ -428,6 +428,7 @@ function EditJob() {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
+
               <button
                 type="submit"
                 disabled={submitting}
@@ -444,7 +445,9 @@ function EditJob() {
               >
                 Cancel
               </Link>
+
             </div>
+
           </form>
         </div>
       </div>

@@ -1,22 +1,30 @@
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  'https://jobhub-xgkf.onrender.com/api'
+
+
+import { API_URL } from './config'
 
 export async function getJobs() {
-  const response = await fetch(`${API_URL}/jobs`)
+  const response = await fetch(
+    `${API_URL}/jobs`
+  )
 
   if (!response.ok) {
-    throw new Error('Failed to fetch jobs')
+    throw new Error(
+      'Failed to fetch jobs'
+    )
   }
 
   return response.json()
 }
 
 export async function getJobById(id) {
-  const response = await fetch(`${API_URL}/jobs/${id}`)
+  const response = await fetch(
+    `${API_URL}/jobs/${id}`
+  )
 
   if (!response.ok) {
-    throw new Error('Failed to fetch job')
+    throw new Error(
+      'Failed to fetch job'
+    )
   }
 
   return response.json()
